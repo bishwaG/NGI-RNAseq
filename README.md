@@ -44,11 +44,12 @@ You can now run:
 ```bash
 nextflow run SciLifeLab/NGI-RNAseq -profile docker --reads '<path to your reads>' --fasta <path to the genome's fasta file> --gtf <path to the genome's gtf file>
 ```
-The fasta and GTF parameters can be specified in a configuration file (you can provide it with -c), look into the `conf/docker_test.config` for an example.
+The fasta and GTF parameters can be specified in a configuration file (you can provide it with -c), look into `conf/docker.config` and `conf/docker_test.config` for an example.
 
 The docker image containting all the required tools will do downloaded on during the run. It can be found on [DockerHub](https://hub.docker.com/r/scilifelab/ngi-rnaseq/)
 
-A test suite for docker has been implemented, and can be run by moving to the `tests` folder and running `./docker_test.sh`. This will download a small yeast genome and some data, and attempt to run the pipeline through docker on that small dataset.
+Two test suites for docker has been implemented, and can be run by moving to the `tests` folder and running `./docker_test.sh` or `./docker_test_hisat.sh`. This will download a small yeast genome and some data, and attempt to run the pipeline through docker, with either STAR or HISAT, on that small dataset.
+Note that even for the test dataset, running STAR requires 12G or RAM, and HISAT requires 7G of RAM.
 
 ### Running on other clusters
 It is entirely possible to run this pipeline on other clusters, though you will need to set up
@@ -68,7 +69,7 @@ There are multiple ways of running this pipeline over Amazon's EC2 service.
 
 The simplest way consists of creating an EC2 instance and running the docker flavour of this pipeline over the machine.
 
-A slightly more complex way is to use our prebuilt AMI to create a ready-to-go virtual machine. The AMI is called `scilifelab/ngi-rnaseq`, id : `ami-f23c6081`. It is available in the Ireland region (eu-west-1). This AMI comes with all the tools installed, including docker and nextflow.  The pipeline can then be run by usint the following : 
+A slightly more complex way is to use our prebuilt AMI to create a ready-to-go virtual machine. The AMI is called `scilifelab/ngi-rnaseq`, id : `ami-9a5c79e9`. It is available in the Ireland region (eu-west-1). This AMI comes with all the tools installed, including docker and nextflow.  The pipeline can then be run by using the following : 
 ```
 nextflow run SciLifeLab/NGI-RNAseq -profile base --reads '<path to your reads>' --fasta <path to the genome's fasta file> --gtf <path to the genome's gtf file>
 ```
