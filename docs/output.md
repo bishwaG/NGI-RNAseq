@@ -4,7 +4,7 @@ NGI-RNAseq is the new RNA-seq Best Practice pipeline used by the [National Genom
 
 This document describes the output produced by the pipeline.
 
-## Pipeline overview:
+## Pipeline overview
 The pipeline is built using [Nextflow](https://www.nextflow.io/)
 and processes data using the following steps:
 
@@ -309,8 +309,11 @@ StringTie outputs FPKM metrics for genes and transcripts as well as the transcri
 [edgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html) is a Bioconductor package for R used for RNA-seq data analysis. The script included in the pipeline uses edgeR to normalise read counts and create a heatmap / dendrogram showing pairwise euclidean distance (sample similarity). It also creates a 2D MDS scatter plot showing sample grouping. These help to show sample similarity and can reveal batch effects and sample groupings.
 
 **Heatmap:**
+
 ![heatmap](images/mqc_hcplot_hocmzpdjsq.png)
+
 **MDS plot:**
+
 ![mds_plot](images/mqc_hcplot_ltqchiyxfz.png)
 
 **Output directory: `results/sample_correlation`**
@@ -340,8 +343,9 @@ StringTie outputs FPKM metrics for genes and transcripts as well as the transcri
 
 For more information about how to use MultiQC reports, see http://multiqc.info
 
------------------------------------------------------------------------------------------
+---
 
-<p align="center"><a href="http://www.scilifelab.se/" target="_blank"><img src="images/SciLifeLab_logo.png" title="SciLifeLab"></a>
-<a href="https://ngisweden.scilifelab.se/" target= _blank><img src="images/NGI-final-small.png" title="NGI" style="height:100px;"></a>
-</p>
+[![SciLifeLab](images/SciLifeLab_logo.png)](http://www.scilifelab.se/)
+[![National Genomics Infrastructure](images/NGI_logo.png)](https://ngisweden.scilifelab.se/)
+
+---

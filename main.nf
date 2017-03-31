@@ -76,13 +76,11 @@ if( params.star_index && params.aligner == 'star' ){
     star_index = Channel
         .fromPath(params.star_index)
         .ifEmpty { exit 1, "STAR index not found: ${params.star_index}" }
-        .toList()
 }
 else if ( params.hisat2_index && params.aligner == 'hisat2' ){
     hs2_indices = Channel
         .fromPath("${params.hisat2_index}*")
         .ifEmpty { exit 1, "HISAT2 index not found: ${params.hisat2_index}" }
-        .toList()
 }
 else if ( params.fasta ){
     fasta = file(params.fasta)
@@ -96,7 +94,6 @@ if( params.gtf ){
     Channel
         .fromPath(params.gtf)
         .ifEmpty { exit 1, "GTF annotation file not found: ${params.gtf}" }
-        .toList()
         .into { gtf_makeSTARindex; gtf_makeHisatSplicesites; gtf_makeHISATindex; gtf_makeBED12;
               gtf_star; gtf_dupradar; gtf_featureCounts; gtf_stringtieFPKM }
 }
@@ -107,13 +104,11 @@ if( params.bed12 ){
     bed12 = Channel
         .fromPath(params.bed12)
         .ifEmpty { exit 1, "BED12 annotation file not found: ${params.bed12}" }
-        .toList()
 }
 if( params.aligner == 'hisat2' && params.splicesites ){
     Channel
         .fromPath(params.bed12)
         .ifEmpty { exit 1, "HISAT2 splice sites file not found: $alignment_splicesites" }
-        .toList()
         .into { indexing_splicesites; alignment_splicesites }
 }
 if( workflow.profile == 'standard' && !params.project ) exit 1, "No UPPMAX project ID found! Use --project"
@@ -167,10 +162,11 @@ Channel
 /*
  * PREPROCESSING - Download Fasta
  */
-if(!params.star_index && !params.fasta && params.download_fasta){
+if(((params.aligner == 'star' && !params.star_index) || (params.aligner == 'hisat2' && !params.hisat2_index)) && !params.fasta && params.download_fasta){
     process downloadFASTA {
         tag "${params.download_fasta}"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         output:
         file "*.{fa,fasta}" into fasta
@@ -192,7 +188,8 @@ if(!params.star_index && !params.fasta && params.download_fasta){
 if(!params.gtf && params.download_gtf){
     process downloadGTF {
         tag "${params.download_gtf}"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         output:
         file "*.gtf" into gtf_makeSTARindex, gtf_makeHisatSplicesites, gtf_makeHISATindex, gtf_makeBED12, gtf_star, gtf_dupradar, gtf_featureCounts, gtf_stringtieFPKM
@@ -214,7 +211,8 @@ if(!params.gtf && params.download_gtf){
  if( params.aligner == 'hisat2' && params.download_hisat2index && !params.hisat2_index){
     process downloadHS2Index {
         tag "${params.download_hisat2index}"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         output:
         file "*/*.ht2" into hs2_indices
@@ -236,7 +234,8 @@ if(!params.gtf && params.download_gtf){
 if(params.aligner == 'star' && !params.star_index && fasta){
     process makeSTARindex {
         tag fasta
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         input:
         file fasta from fasta
@@ -264,7 +263,8 @@ if(params.aligner == 'star' && !params.star_index && fasta){
 if(params.aligner == 'hisat2' && !params.splicesites){
     process makeHisatSplicesites {
         tag "$gtf"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         input:
         file gtf from gtf_makeHisatSplicesites
@@ -284,7 +284,8 @@ if(params.aligner == 'hisat2' && !params.splicesites){
 if(params.aligner == 'hisat2' && !params.hisat2_index && !params.download_hisat2index && fasta){
     process makeHISATindex {
         tag "$fasta"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         input:
         file fasta from fasta
@@ -320,7 +321,8 @@ if(params.aligner == 'hisat2' && !params.hisat2_index && !params.download_hisat2
 if(!params.bed12){
     process makeBED12 {
         tag "$gtf"
-        publishDir path: "${params.outdir}/reference_genome", saveAs: { params.saveReference ? it : null }, mode: 'copy'
+        publishDir path: { params.saveReference ? "${params.outdir}/reference_genome" : params.outdir },
+                   saveAs: { params.saveReference ? it : null }, mode: 'copy'
 
         input:
         file gtf from gtf_makeBED12
@@ -341,7 +343,8 @@ if(!params.bed12){
  */
 process fastqc {
     tag "$name"
-    publishDir "${params.outdir}/fastqc", mode: 'copy'
+    publishDir "${params.outdir}/fastqc", mode: 'copy',
+        saveAs: {filename -> filename.indexOf(".zip") > 0 ? "zips/$filename" : "$filename"}
 
     input:
     set val(name), file(reads) from read_files_fastqc
@@ -361,7 +364,12 @@ process fastqc {
  */
 process trim_galore {
     tag "$name"
-    publishDir "${params.outdir}/trim_galore", mode: 'copy'
+    publishDir "${params.outdir}/trim_galore", mode: 'copy',
+        saveAs: {filename ->
+            if (filename.indexOf("_fastqc") > 0) "FastQC/$filename"
+            else if (filename.indexOf("trimming_report.txt") > 0) "logs/$filename"
+            else "$filename"
+        }
 
     input:
     set val(name), file(reads) from read_files_trimming
@@ -413,12 +421,13 @@ def check_log(logs) {
 if(params.aligner == 'star'){
     process star {
         tag "$prefix"
-        publishDir "${params.outdir}/STAR", mode: 'copy'
+        publishDir "${params.outdir}/STAR", mode: 'copy',
+            saveAs: {filename -> filename.indexOf(".out") > 0 ? "logs/$filename" : "$filename"}
 
         input:
         file reads from trimmed_reads
-        file index from star_index.first()
-        file gtf from gtf_star.first()
+        file index from star_index.collect()
+        file gtf from gtf_star.collect()
 
         output:
         set file("*Log.final.out"), file ('*.bam') into star_aligned
@@ -454,12 +463,13 @@ if(params.aligner == 'star'){
 if(params.aligner == 'hisat2'){
     process hisat2Align {
         tag "$prefix"
-        publishDir "${params.outdir}/HISAT2", mode: 'copy'
+        publishDir "${params.outdir}/HISAT2", mode: 'copy',
+            saveAs: {filename -> filename.indexOf("_log.txt") > 0 ? "logs/$filename" : "aligned/$filename"}
 
         input:
         file reads from trimmed_reads
-        file hs2_indices from hs2_indices.first()
-        file alignment_splicesites from alignment_splicesites.first()
+        file hs2_indices from hs2_indices.collect()
+        file alignment_splicesites from alignment_splicesites.collect()
 
         output:
         file "${prefix}.bam" into hisat2_bam
@@ -498,7 +508,7 @@ if(params.aligner == 'hisat2'){
 
     process hisat2_sortOutput {
         tag "${hisat2_bam.baseName}"
-        publishDir "${params.outdir}/HISAT2", mode: 'copy'
+        publishDir "${params.outdir}/HISAT2/aligned_sorted", mode: 'copy'
 
         input:
         file hisat2_bam
@@ -524,12 +534,39 @@ if(params.aligner == 'hisat2'){
  * STEP 4 - RSeQC analysis
  */
 process rseqc {
-    tag "${bam_rseqc.baseName}"
-    publishDir "${params.outdir}/rseqc" , mode: 'copy'
+    tag "${bam_rseqc.baseName - '.sorted'}"
+    publishDir "${params.outdir}/rseqc" , mode: 'copy',
+        saveAs: {filename ->
+                 if (filename.indexOf("bam_stat.txt") > 0)                      "bam_stat/$filename"
+            else if (filename.indexOf("infer_experiment.txt") > 0)              "infer_experiment/$filename"
+            else if (filename.indexOf("read_distribution.txt") > 0)             "read_distribution/$filename"
+            else if (filename.indexOf("read_duplication.DupRate_plot.pdf") > 0) "read_duplication/$filename"
+            else if (filename.indexOf("read_duplication.DupRate_plot.r") > 0)   "read_duplication/rscripts/$filename"
+            else if (filename.indexOf("read_duplication.pos.DupRate.xls") > 0)  "read_duplication/dup_pos/$filename"
+            else if (filename.indexOf("read_duplication.seq.DupRate.xls") > 0)  "read_duplication/dup_seq/$filename"
+            else if (filename.indexOf("RPKM_saturation.eRPKM.xls") > 0)         "RPKM_saturation/rpkm/$filename"
+            else if (filename.indexOf("RPKM_saturation.rawCount.xls") > 0)      "RPKM_saturation/counts/$filename"
+            else if (filename.indexOf("RPKM_saturation.saturation.pdf") > 0)    "RPKM_saturation/$filename"
+            else if (filename.indexOf("RPKM_saturation.saturation.r") > 0)      "RPKM_saturation/rscripts/$filename"
+            else if (filename.indexOf("geneBodyCoverage.curves.pdf") > 0)       "geneBodyCoverage/$filename"
+            else if (filename.indexOf("geneBodyCoverage.r") > 0)                "geneBodyCoverage/rscripts/$filename"
+            else if (filename.indexOf("geneBodyCoverage.txt") > 0)              "geneBodyCoverage/data/$filename"
+            else if (filename.indexOf("inner_distance.txt") > 0)                "inner_distance/$filename"
+            else if (filename.indexOf("inner_distance_freq.txt") > 0)           "inner_distance/data/$filename"
+            else if (filename.indexOf("inner_distance_plot.r") > 0)             "inner_distance/rscripts/$filename"
+            else if (filename.indexOf("junction_plot.r") > 0)                   "junction_annotation/rscripts/$filename"
+            else if (filename.indexOf("junction.xls") > 0)                      "junction_annotation/data/$filename"
+            else if (filename.indexOf("splice_events.pdf") > 0)                 "junction_annotation/events/$filename"
+            else if (filename.indexOf("splice_junction.pdf") > 0)               "junction_annotation/junctions/$filename"
+            else if (filename.indexOf("junctionSaturation_plot.pdf") > 0)       "junction_saturation/$filename"
+            else if (filename.indexOf("junctionSaturation_plot.r") > 0)         "junction_saturation/rscripts/$filename"
+            else if (filename.indexOf("log.txt") > -1) false
+            else "$filename"
+        }
 
     input:
     file bam_rseqc
-    file bed12 from bed12.first()
+    file bed12 from bed12.collect()
 
     output:
     file "*.{txt,pdf,r,xls}" into rseqc_results
@@ -557,7 +594,7 @@ process rseqc {
  * STEP 5 - preseq analysis
  */
 process preseq {
-    tag "${bam_preseq.baseName}"
+    tag "${bam_preseq.baseName - '.sorted'}"
     publishDir "${params.outdir}/preseq", mode: 'copy'
 
     input:
@@ -578,8 +615,9 @@ process preseq {
  * STEP 6 Mark duplicates
  */
 process markDuplicates {
-    tag "${bam_markduplicates.baseName}"
-    publishDir "${params.outdir}/markDuplicates", mode: 'copy'
+    tag "${bam_markduplicates.baseName - '.sorted'}"
+    publishDir "${params.outdir}/markDuplicates", mode: 'copy',
+        saveAs: {filename -> filename.indexOf("_metrics.txt") > 0 ? "metrics/$filename" : "$filename"}
 
     input:
     file bam_markduplicates
@@ -609,12 +647,21 @@ process markDuplicates {
  * STEP 7 - dupRadar
  */
 process dupradar {
-    tag "${bam_md.baseName}"
-    publishDir "${params.outdir}/dupradar", pattern: '*.{pdf,txt}', mode: 'copy'
+    tag "${bam_md.baseName - '.sorted.markDups'}"
+    publishDir "${params.outdir}/dupradar", mode: 'copy',
+        saveAs: {filename ->
+            if (filename.indexOf("_duprateExpDens.pdf") > 0) "scatter_plots/$filename"
+            else if (filename.indexOf("_duprateExpBoxplot.pdf") > 0) "box_plots/$filename"
+            else if (filename.indexOf("_expressionHist.pdf") > 0) "histograms/$filename"
+            else if (filename.indexOf("_dupMatrix.txt") > 0) "gene_data/$filename"
+            else if (filename.indexOf("_duprateExpDensCurve.txt") > 0) "scatter_curve_data/$filename"
+            else if (filename.indexOf("_intercept_slope.txt") > 0) "intercepts_slopes/$filename"
+            else "$filename"
+        }
 
     input:
     file bam_md
-    file gtf from gtf_dupradar.first()
+    file gtf from gtf_dupradar.collect()
 
     output:
     file "*.{pdf,txt}" into dupradar_results
@@ -632,15 +679,21 @@ process dupradar {
  * STEP 8 Feature counts
  */
 process featureCounts {
-    tag "${bam_featurecounts.baseName}"
-    publishDir "${params.outdir}/featureCounts", mode: 'copy'
+    tag "${bam_featurecounts.baseName - '.sorted'}"
+    publishDir "${params.outdir}/featureCounts", mode: 'copy',
+        saveAs: {filename ->
+            if (filename.indexOf("_biotype_counts.txt") > 0) "biotype_counts/$filename"
+            else if (filename.indexOf("_gene.featureCounts.txt.summary") > 0) "gene_count_summaries/$filename"
+            else if (filename.indexOf("_gene.featureCounts.txt") > 0) "gene_counts/$filename"
+            else "$filename"
+        }
 
     input:
     file bam_featurecounts
-    file gtf from gtf_featureCounts.first()
+    file gtf from gtf_featureCounts.collect()
 
     output:
-    file "${bam_featurecounts.baseName}_gene.featureCounts.txt" into geneCounts
+    file "${bam_featurecounts.baseName}_gene.featureCounts.txt" into geneCounts, featureCounts_to_merge
     file "${bam_featurecounts.baseName}_gene.featureCounts.txt.summary" into featureCounts_logs
     file "${bam_featurecounts.baseName}_biotype_counts.txt" into featureCounts_biotype
 
@@ -653,16 +706,42 @@ process featureCounts {
 }
 
 
+
 /*
- * STEP 9 - stringtie FPKM
+ * STEP 9 - Merge featurecounts
+ */
+process merge_featureCounts {
+    tag "${input_files[0].baseName - '.sorted'}"
+    publishDir "${params.outdir}/featureCounts", mode: 'copy'
+
+    input:
+    file input_files from featureCounts_to_merge.toList()
+
+    output:
+    file 'merged_gene_counts.txt'
+
+    script:
+    """
+    merge_featurecounts.py -o merged_gene_counts.txt -i $input_files
+    """
+}
+
+
+/*
+ * STEP 10 - stringtie FPKM
  */
 process stringtieFPKM {
-    tag "${bam_stringtieFPKM.baseName}"
-    publishDir "${params.outdir}/stringtieFPKM", mode: 'copy'
+    tag "${bam_stringtieFPKM.baseName - '.sorted'}"
+    publishDir "${params.outdir}/stringtieFPKM", mode: 'copy',
+        saveAs: {filename ->
+            if (filename.indexOf("transcripts.gtf") > 0) "transcripts/$filename"
+            else if (filename.indexOf("cov_refs.gtf") > 0) "cov_refs/$filename"
+            else "$filename"
+        }
 
     input:
     file bam_stringtieFPKM
-    file gtf from gtf_stringtieFPKM.first()
+    file gtf from gtf_stringtieFPKM.collect()
 
     output:
     file "${bam_stringtieFPKM.baseName}_transcripts.gtf"
@@ -690,14 +769,14 @@ bam_count.count().subscribe{ num_bams = it }
 
 
 /*
- * STEP 10 - edgeR MDS and heatmap
+ * STEP 11 - edgeR MDS and heatmap
  */
 process sample_correlation {
-    tag "$prefix"
+    tag "${input_files[0].toString() - '.sorted_gene.featureCounts.txt' - 'Aligned'}"
     publishDir "${params.outdir}/sample_correlation", mode: 'copy'
 
     input:
-    file input_files from geneCounts.toList()
+    file input_files from geneCounts.collect()
     bam_count
 
     output:
@@ -708,8 +787,6 @@ process sample_correlation {
 
     script: // This script is bundled with the pipeline, in NGI-RNAseq/bin/
     def rlocation = params.rlocation ?: ''
-    prefix = input_files[0].toString() - 'Aligned.sortedByCoord.out_gene.featureCounts.txt' 
-
     """
     edgeR_heatmap_MDS.r "rlocation=$rlocation" $input_files
     """
@@ -717,34 +794,54 @@ process sample_correlation {
 
 
 /*
- * STEP 11 MultiQC
+ * STEP 12 MultiQC
  */
 process multiqc {
     tag "$prefix"
     publishDir "${params.outdir}/MultiQC", mode: 'copy'
+    echo true
 
     input:
-    file (fastqc:'fastqc/*') from fastqc_results.flatten().toList()
-    file ('trimgalore/*') from trimgalore_results.flatten().toList()
-    file ('alignment/*') from alignment_logs.flatten().toList()
-    file ('rseqc/*') from rseqc_results.flatten().toList()
-    file ('preseq/*') from preseq_results.flatten().toList()
-    file ('dupradar/*') from dupradar_results.flatten().toList()
-    file ('featureCounts/*') from featureCounts_logs.flatten().toList()
-    file ('featureCounts_biotype/*') from featureCounts_biotype.flatten().toList()
-    file ('stringtie/*') from stringtie_log.flatten().toList()
-    file ('sample_correlation_results/*') from sample_correlation_results.flatten().toList()
+    file (fastqc:'fastqc/*') from fastqc_results.collect()
+    file ('trimgalore/*') from trimgalore_results.collect()
+    file ('alignment/*') from alignment_logs.collect()
+    file ('rseqc/*') from rseqc_results.collect()
+    file ('preseq/*') from preseq_results.collect()
+    file ('dupradar/*') from dupradar_results.collect()
+    file ('featureCounts/*') from featureCounts_logs.collect()
+    file ('featureCounts_biotype/*') from featureCounts_biotype.collect()
+    file ('stringtie/*') from stringtie_log.collect()
+    file ('sample_correlation_results/*') from sample_correlation_results.collect()
 
     output:
-    file "*multiqc_report.html"
+    file "*multiqc_report.html" into multiqc_report
     file "*multiqc_data"
+    val prefix into multiqc_prefix
 
     script:
     prefix = fastqc[0].toString() - '_fastqc.html' - 'fastqc/'
     """
     cp $baseDir/conf/multiqc_config.yaml multiqc_config.yaml
-    multiqc -f .
+    multiqc -f . 2>&1
     """
 }
 
+/*
+ * STEP 13 - Output Description HTML
+ */
+process output_documentation {
+    tag "$prefix"
+    publishDir "${params.outdir}/Documentation", mode: 'copy'
 
+    input:
+    val prefix from multiqc_prefix
+
+    output:
+    file "results_description.html"
+
+    script:
+    def rlocation = params.rlocation ?: ''
+    """
+    markdown_to_html.r $baseDir/docs/output.md results_description.html $rlocation
+    """
+}
