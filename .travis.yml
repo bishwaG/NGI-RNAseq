@@ -6,15 +6,11 @@ jdk: openjdk8
 
 services:
   - docker
+install:
+  - mkdir /tmp/nextflow
+  - cd /tmp/nextflow
+  - wget -qO- get.nextflow.io | bash
+  - sudo ln -s /tmp/nextflow/nextflow /usr/local/bin/nextflow
+  - cd ${TRAVIS_BUILD_DIR}/tests/
 
-# safelist
-branches:
-   only:
-     - master
-install: 
-    - git clone https://github.com/Galithil/NGI-RNAseq.git /tmp/NGI-RNAseq
-    - git checkout amazon
-    - cd /tmp/NGI-RNAseq/tests
-
-#script: "./nextflow run SciLifeLab/NGI-RNAseq -profile docker_test --reads '/tmp/ngi-rna_test_set/*.fastq.gz'"
 script: "./docker_test_hisat.sh"
