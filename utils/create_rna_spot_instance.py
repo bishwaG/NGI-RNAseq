@@ -158,7 +158,7 @@ class NGI_RNA_Setup():
         self.log.info("Looking for EFS '{}'".format(EFS_NAME))
         response = self.efs_client.describe_file_systems()
         for efs in response["FileSystems"]:
-            if efs["Name"] == EFS_NAME:
+            if efs.get("Name") == EFS_NAME:
                 efs_id = efs['FileSystemId'] 
                 response = self.efs_client.describe_mount_targets(FileSystemId=efs_id)
                 for target in response['MountTargets']:
@@ -228,8 +228,10 @@ class NGI_RNA_Setup():
             time.sleep(5)
 
 
-        self.log.info("Machine ready")
-        self.log.info("ssh -i \"{}.pem\" ec2-user@{}".format(self.keyname, dns_name))
+        self.log.info("To connect to the instance :")
+        self.log.info("ssh -i \"{}.pem\" ec2-user@{}\n".format(self.keyname, dns_name))
+        self.log.info("Remember to terminate your instance once you're done.")
+
 
 def first_setup():
     pip.main(['install', 'boto3'])
@@ -245,9 +247,9 @@ def first_setup():
         cf.write("output = text\n")
         cf.write("region = {}\n".format(region))
 
-    print "Next, we'll need your amazon credentials. Navigate to your IAM console (https://console.aws.amazon.com/iam/home?region={}), create an individual IAM user.".format(region)
+    print "Next, we'll need your amazon credentials. Navigate to your IAM console (https://console.aws.amazon.com/iam/home?region={}), click 'Users' and 'Add User'.".format(region)
     print "Tick  'programmatic access', then 'Permissions'"
-    print"There, select 'AmazonEC2FullAccess' and 'AmazonElasticFileSystemFullAccess'."
+    print"There, choose 'Attach exising policies directly' and select 'AmazonEC2FullAccess' and 'AmazonElasticFileSystemFullAccess'."
     i = raw_input("Press 'Review' and 'Create User'. Copy the 'Access key ID' and the 'Secret access key'. Press Enter when this is done.")
     access_key = raw_input("Please enter your AWS access key ID:  ")
     secret_key = raw_input("Please enter your AWS secret key :  ")
