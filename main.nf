@@ -806,6 +806,7 @@ process markDuplicates {
         avail_mem = task.memory.toGiga()
     }
     """
+    mkdir temp
     java -Xmx${avail_mem}g -jar \$PICARD_HOME/picard.jar MarkDuplicates \\
         INPUT=$bam_markduplicates \\
         OUTPUT=${bam_markduplicates.baseName}.markDups.bam \\
@@ -813,7 +814,8 @@ process markDuplicates {
         REMOVE_DUPLICATES=false \\
         ASSUME_SORTED=true \\
         PROGRAM_RECORD_ID='null' \\
-        VALIDATION_STRINGENCY=LENIENT
+        VALIDATION_STRINGENCY=LENIENT \\
+        TMP_DIR=temp=temp
 
     # Print version number to standard out
     echo "File name: $bam_markduplicates Picard version "\$(java -Xmx2g -jar \$PICARD_HOME/picard.jar  MarkDuplicates --version 2>&1)
